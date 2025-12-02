@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlucoReminder App (Node Server)</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- App Styles -->
+    <style>
+        body {
+            background-color: #f8fafc;
+        }
+
+        .animate-in {
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <!-- REACT APPLICATION LOGIC -->
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- ICONS ---
+        const Icon = ({ path, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {path}
+            </svg>
+        );
+
+        const Icons = {
+            Activity: (props) => <Icon {...props} path={<><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></>} />,
+            User: (props) => <Icon {...props} path={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>} />,
+            Plus: (props) => <Icon {...props} path={<><path d="M5 12h14" /><path d="M12 5v14" /></>} />,
+            Search: (props) => <Icon {...props} path={<><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></>} />,
+            CheckCircle: (props) => <Icon {...props} path={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></>} />,
+            MessageCircle: (props) => <Icon {...props} path={<><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z" /></>} />,
+            Phone: (props) => <Icon {...props} path={<><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></>} />,
+            Clock: (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>} />,
+            LogOut: (props) => <Icon {...props} path={<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" /></>} />,
+            ChevronRight: (props) => <Icon {...props} path={<><path d="m9 18 6-6-6-6" /></>} />,
+            CalendarDays: (props) => <Icon {...props} path={<><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /><path d="M8 14h.01" /><path d="M12 14h.01" /><path d="M16 14h.01" /><path d="M8 18h.01" /><path d="M12 18h.01" /><path d="M16 18h.01" /></>} />,
+            Lock: (props) => <Icon {...props} path={<><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>} />,
+            ShieldCheck: (props) => <Icon {...props} path={<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><path d="m9 12 2 2 4-4" /></>} />,
+            AlertCircle: (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></>} />,
+            Settings: (props) => <Icon {...props} path={<><path d="M12.22 2h-.44a2 2 0 0 1-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></>} />,
+            X: (props) => <Icon {...props} path={<><path d="M18 6 6 18" /><path d="m6 6 18 12" /></>} />,
+            Cloud: (props) => <Icon {...props} path={<><path d="M17.5 19c0-1.7-1.3-3-3-3h-1.1c-.1-2.9-2.4-5.2-5.3-5.2-2.5 0-4.6 1.8-5.2 4.2-3.4.3-6 3.3-5.7 6.8.3 3 2.8 5.2 5.8 5.2h9.5c2.5 0 4.5-2 4.5-4.5z" /></>} />,
+            Check: (props) => <Icon {...props} path={<><polyline points="20 6 9 17 4 12" /></>} />,
+            Server: (props) => <Icon {...props} path={<><rect width="20" height="8" x="2" y="2" rx="2" ry="2" /><rect width="20" height="8" x="2" y="14" rx="2" ry="2" /><line x1="6" x2="6.01" y1="6" y2="6" /><line x1="6" x2="6.01" y1="18" y2="18" /></>} />
+        };
+
+        // --- HELPER FUNCTIONS ---
+        const isDue = (nextCheckupDateStr) => {
+            if (!nextCheckupDateStr) return false;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const checkup = new Date(nextCheckupDateStr);
+            return checkup <= today;
+        };
+
+        const getNextDate = (days = 30) => {
+            const date = new Date();
+            date.setDate(date.getDate() + days);
+            return date.toISOString().split('T')[0];
+        };
+
+        const formatDate = (dateStr) => {
+            if (!dateStr) return 'None'; // Changed from 'N/A'
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateStr).toLocaleDateString(undefined, options);
+        };
+
+        const getRelativeDateLabel = (dateStr) => {
+            const date = new Date(dateStr);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            date.setHours(0, 0, 0, 0);
+            const diffTime = date.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays < 0) return `Overdue (${formatDate(dateStr)})`;
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Tomorrow';
+            return formatDate(dateStr);
+        };
+
+        // --- API MANAGER ---
+        // Replacing LocalStorage with Server Calls
+        const API = {
+            getPatients: async () => {
+                try {
+                    const res = await fetch('/api/patients');
+                    if (!res.ok) throw new Error('Failed to fetch');
+                    return await res.json();
+                } catch (e) {
+                    console.error("API Error:", e);
+                    return [];
+                }
+            },
+            savePatients: async (data) => {
+                try {
+                    await fetch('/api/patients', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                } catch (e) {
+                    console.error("Save Error:", e);
+                }
+            }
+        };
+
+        // --- MAIN COMPONENT ---
+        function GlucoReminder() {
+            const [patients, setPatients] = useState([]);
+            const [view, setView] = useState('dashboard');
+            const [isSessionValid, setSessionValid] = useState(false);
+            const [pinInput, setPinInput] = useState('');
+            const [loginError, setLoginError] = useState('');
+            const [showSettings, setShowSettings] = useState(false);
+            const [loading, setLoading] = useState(true);
+            const [isCheckedToday, setIsCheckedToday] = useState(false); // NEW STATE for checkbox
+
+            // Load Data from Server on Mount
+            useEffect(() => {
+                const loadData = async () => {
+                    const data = await API.getPatients();
+                    setPatients(data);
+                    setLoading(false);
+                };
+                loadData();
+            }, []);
+
+            // Auto-save to Server whenever patients change
+            // We skip the first render to avoid overwriting empty data
+            const isFirstRun = useRef(true);
+            useEffect(() => {
+                if (isFirstRun.current) {
+                    isFirstRun.current = false;
+                    return;
+                }
+                API.savePatients(patients);
+            }, [patients]);
+
+            // Simple Session Check (Client-side for this demo)
+            useEffect(() => {
+                const lastLoginStr = localStorage.getItem('gluco_last_login');
+                if (lastLoginStr) {
+                    const lastLogin = new Date(lastLoginStr);
+                    const now = new Date();
+                    const diffDays = Math.ceil(Math.abs(now - lastLogin) / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 30) {
+                        setSessionValid(true);
+                    }
+                }
+            }, []);
+
+            // Actions
+            const handleLogin = (e) => {
+                e.preventDefault();
+                if (pinInput === '1234') {
+                    localStorage.setItem('gluco_last_login', new Date().toISOString());
+                    setSessionValid(true);
+                    setLoginError('');
+                } else {
+                    setLoginError('Invalid PIN. Please try again.');
+                }
+            };
+
+            const handleLogout = () => {
+                localStorage.setItem('gluco_last_login', new Date('2000-01-01').toISOString());
+                setShowSettings(false);
+                setSessionValid(false);
+                setView('dashboard');
+                setPinInput('');
+            };
+
+            const handleAddPatient = (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const name = form.pName.value;
+                const phone = form.pPhone.value;
+                const interval = parseInt(form.pInterval.value) || 30;
+
+                // Logic change based on checkbox
+                let todayStr = null; // Default: No checkup done yet
+                let nextDateStr = "";
+
+                if (isCheckedToday) {
+                    // Option 1: Checked Today
+                    const today = new Date();
+                    todayStr = today.toISOString().split('T')[0];
+
+                    const nextDate = new Date();
+                    nextDate.setDate(nextDate.getDate() + interval);
+                    nextDateStr = nextDate.toISOString().split('T')[0];
+                } else {
+                    // Option 2: Scheduling for future
+                    const specificDate = form.pNextDate.value;
+                    if (!specificDate) {
+                        // Fallback if field is empty/hidden but somehow submitted (rare)
+                        const nextDate = new Date();
+                        nextDate.setDate(nextDate.getDate() + interval);
+                        nextDateStr = nextDate.toISOString().split('T')[0];
+                    } else {
+                        nextDateStr = specificDate;
+                    }
+                }
+
+                const newPatient = {
+                    id: crypto.randomUUID(),
+                    name,
+                    phone,
+                    checkupInterval: interval,
+                    lastCheckup: todayStr, // Null or Today
+                    nextCheckup: nextDateStr,
+                    createdAt: new Date().toISOString()
+                };
+
+                setPatients(prev => [...prev, newPatient]);
+                setView('dashboard');
+                form.reset();
+                setIsCheckedToday(false); // Reset checkbox
+            };
+
+            const markCheckupComplete = (patient) => {
+                const todayStr = new Date().toISOString().split('T')[0];
+                const nextDate = new Date();
+                nextDate.setDate(nextDate.getDate() + (patient.checkupInterval || 30));
+                const nextDateStr = nextDate.toISOString().split('T')[0];
+
+                setPatients(prev => prev.map(p =>
+                    p.id === patient.id ? { ...p, lastCheckup: todayStr, nextCheckup: nextDateStr } : p
+                ));
+            };
+
+            const deletePatient = (id) => {
+                if (confirm("Delete this patient?")) {
+                    setPatients(prev => prev.filter(p => p.id !== id));
+                }
+            };
+
+            const duePatients = patients.filter(p => isDue(p.nextCheckup));
+            const getGroupedPatients = () => {
+                const grouped = {};
+                patients.forEach(patient => {
+                    const dateKey = patient.nextCheckup;
+                    if (!grouped[dateKey]) grouped[dateKey] = [];
+                    grouped[dateKey].push(patient);
+                });
+                return Object.keys(grouped).sort().map(date => ({ date, patients: grouped[date] }));
+            };
+            const scheduleGroups = getGroupedPatients();
+
+            // --- RENDERING ---
+
+            if (!isSessionValid) {
+                return (
+                    <div className="min-h-screen bg-emerald-600 flex items-center justify-center p-4">
+                        <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in">
+                            <div className="bg-emerald-700 p-8 text-center">
+                                <div className="mx-auto w-16 h-16 text-emerald-100 mb-4 flex justify-center"><Icons.ShieldCheck className="w-16 h-16" /></div>
+                                <h1 className="text-2xl font-bold text-white">Doctor Validation</h1>
+                                <p className="text-emerald-100 text-sm mt-2">Security Check Required</p>
+                            </div>
+                            <div className="p-8">
+                                <form onSubmit={handleLogin} className="space-y-6">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Enter Admin PIN</label>
+                                        <div className="relative">
+                                            <div className="absolute left-3 top-3.5 w-5 h-5 text-slate-400"><Icons.Lock className="w-5 h-5" /></div>
+                                            <input type="password" value={pinInput} onChange={(e) => setPinInput(e.target.value)}
+                                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-lg tracking-widest"
+                                                placeholder="••••" maxLength={4} autoFocus />
+                                        </div>
+                                        {loginError && <p className="text-rose-500 text-sm mt-2 font-medium">{loginError}</p>}
+                                    </div>
+                                    <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-bold shadow-lg shadow-emerald-200 transition transform active:scale-95">Validate & Login</button>
+                                </form>
+                                <p className="text-center text-xs text-slate-400 mt-6">Default PIN: 1234</p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50 text-emerald-600">Loading patients...</div>;
+
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans pb-24 md:pb-0 text-slate-800 relative">
+                    {showSettings && (
+                        <div className="fixed inset-0 z-50 flex items-start justify-end p-4">
+                            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setShowSettings(false)}></div>
+                            <div className="relative bg-white rounded-xl shadow-2xl w-64 mt-14 overflow-hidden animate-in">
+                                <div className="bg-slate-50 p-3 border-b border-slate-100 flex justify-between items-center">
+                                    <h3 className="font-bold text-slate-700 text-sm">App Settings</h3>
+                                    <button onClick={() => setShowSettings(false)}><Icons.X className="w-4 h-4 text-slate-400" /></button>
+                                </div>
+                                <div className="p-3 space-y-3">
+                                    <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-emerald-100 p-2 rounded-full"><Icons.Server className="w-4 h-4 text-emerald-600" /></div>
+                                            <div>
+                                                <p className="text-xs font-bold text-emerald-800">Node Server Active</p>
+                                                <p className="text-[10px] text-emerald-600">Synced to patient.json</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="h-px bg-slate-100 my-1"></div>
+                                    <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-lg transition text-sm font-medium text-left">
+                                        <Icons.LogOut className="w-4 h-4" /> Lock App
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <header className="bg-emerald-600 text-white p-4 shadow-lg sticky top-0 z-10">
+                        <div className="max-w-3xl mx-auto flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <Icons.Activity className="w-6 h-6" />
+                                <h1 className="text-xl font-bold tracking-tight">GlucoReminder</h1>
+                            </div>
+                            <button onClick={() => setShowSettings(!showSettings)} className={`p-2 rounded-full transition ${showSettings ? 'bg-emerald-700' : 'hover:bg-emerald-500'}`}>
+                                <Icons.Settings className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </header>
+
+                    <main className="max-w-3xl mx-auto p-4">
+                        {view === 'dashboard' && (
+                            <div className="space-y-6 animate-in">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                                        <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">Due Today</p>
+                                        <p className="text-3xl font-bold text-rose-500">{duePatients.length}</p>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                                        <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">Total Patients</p>
+                                        <p className="text-3xl font-bold text-emerald-600">{patients.length}</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold mb-3 flex items-center gap-2"><Icons.Clock className="w-5 h-5 text-rose-500" /> Action Required ({duePatients.length})</h2>
+                                    {duePatients.length === 0 ? (
+                                        <div className="bg-emerald-50 border border-emerald-100 p-8 rounded-xl text-center">
+                                            <div className="mx-auto w-12 h-12 text-emerald-400 mb-3 flex justify-center"><Icons.CheckCircle className="w-12 h-12" /></div>
+                                            <p className="text-emerald-800 font-medium">All caught up!</p>
+                                            <p className="text-emerald-600 text-sm">No patients are due for checkups today.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {duePatients.map(patient => (
+                                                <PatientCard key={patient.id} patient={patient} onCheck={markCheckupComplete} isUrgent={true} />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'schedule' && (
+                            <div className="space-y-6 animate-in">
+                                <h2 className="text-lg font-bold mb-3 flex items-center gap-2"><Icons.CalendarDays className="w-5 h-5 text-emerald-600" /> Checkup Schedule</h2>
+                                {scheduleGroups.length === 0 ? (
+                                    <div className="text-center p-8 text-slate-400">No upcoming checkups found.</div>
+                                ) : (
+                                    scheduleGroups.map(group => (
+                                        <div key={group.date} className="relative pl-6 pb-2 border-l-2 border-slate-200 last:border-0">
+                                            <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 ${isDue(group.date) ? 'bg-rose-500 border-rose-200' : 'bg-emerald-500 border-emerald-200'}`}></div>
+                                            <h3 className={`font-bold mb-3 text-sm uppercase tracking-wide ${isDue(group.date) ? 'text-rose-600' : 'text-slate-500'}`}>{getRelativeDateLabel(group.date)}</h3>
+                                            <div className="space-y-3">
+                                                {group.patients.map(patient => (
+                                                    <PatientCard key={patient.id} patient={patient} onCheck={markCheckupComplete} isUrgent={isDue(group.date)} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+
+                        {view === 'all' && (
+                            <div className="space-y-4 animate-in">
+                                <h2 className="text-lg font-bold mb-3">All Patients</h2>
+                                <div className="relative">
+                                    <div className="absolute left-3 top-3 w-5 h-5 text-slate-400"><Icons.Search className="w-5 h-5" /></div>
+                                    <input type="text" placeholder="Search name..." className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                </div>
+                                <div className="space-y-3">
+                                    {patients.map(patient => (
+                                        <PatientCard key={patient.id} patient={patient} onCheck={markCheckupComplete} onDelete={() => deletePatient(patient.id)} isUrgent={isDue(patient.nextCheckup)} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'add' && (
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 animate-in">
+                                <h2 className="text-xl font-bold mb-6 text-slate-800">Register New Patient</h2>
+                                <form onSubmit={handleAddPatient} className="space-y-5">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Patient Name</label>
+                                        <input required name="pName" type="text" className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition" placeholder="e.g. John Doe" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+                                        <input required name="pPhone" type="tel" className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition" placeholder="e.g. +1234567890" />
+                                    </div>
+
+                                    <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-100">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <input
+                                                type="checkbox"
+                                                id="pCheckedToday"
+                                                checked={isCheckedToday}
+                                                onChange={(e) => setIsCheckedToday(e.target.checked)}
+                                                className="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500"
+                                            />
+                                            <label htmlFor="pCheckedToday" className="text-sm font-bold text-emerald-800 cursor-pointer select-none">
+                                                I checked this patient today
+                                            </label>
+                                        </div>
+                                        <p className="text-xs text-emerald-600 ml-8 leading-tight">
+                                            {isCheckedToday
+                                                ? "Next checkup will be automatically scheduled based on the interval below."
+                                                : "Select a date below for the first checkup."}
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {!isCheckedToday && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1">First Checkup Date</label>
+                                                <input required name="pNextDate" type="date" defaultValue={getNextDate(30)} className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition" />
+                                            </div>
+                                        )}
+                                        <div className={isCheckedToday ? "md:col-span-2" : ""}>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Recurring Interval</label>
+                                            <select name="pInterval" className="w-full p-3 rounded-lg border border-slate-200 bg-white outline-none">
+                                                <option value="30">Monthly (30 days)</option>
+                                                <option value="14">Bi-Weekly (14 days)</option>
+                                                <option value="90">Quarterly (90 days)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="pt-4 flex gap-3">
+                                        <button type="button" onClick={() => setView('dashboard')} className="flex-1 py-3 text-slate-600 font-medium">Cancel</button>
+                                        <button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg font-bold shadow-md shadow-emerald-200 transition">Save Patient</button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
+                    </main>
+
+                    {view !== 'add' && !showSettings && (
+                        <button onClick={() => setView('add')} className="fixed bottom-24 right-6 md:hidden bg-emerald-600 text-white p-4 rounded-full shadow-xl shadow-emerald-200 z-50 hover:scale-105 transition">
+                            <Icons.Plus className="w-6 h-6" />
+                        </button>
+                    )}
+
+                    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-2 z-40">
+                        <div className="max-w-3xl mx-auto flex justify-around">
+                            <NavBtn active={view === 'dashboard'} onClick={() => setView('dashboard')} icon={<Icons.Activity className="w-6 h-6" />} label="Home" />
+                            <NavBtn active={view === 'schedule'} onClick={() => setView('schedule')} icon={<Icons.CalendarDays className="w-6 h-6" />} label="Schedule" />
+                            <NavBtn active={view === 'add'} onClick={() => setView('add')} icon={<Icons.Plus className="w-6 h-6" />} label="Add New" hideMobile />
+                            <NavBtn active={view === 'all'} onClick={() => setView('all')} icon={<Icons.User className="w-6 h-6" />} label="Patients" />
+                        </div>
+                    </nav>
+                </div>
+            );
+        }
+
+        function NavBtn({ active, onClick, icon, label, hideMobile }) {
+            return (
+                <button onClick={onClick} className={`flex flex-col items-center gap-1 p-2 rounded-lg transition w-20 ${hideMobile ? 'hidden md:flex' : 'flex'} ${active ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:bg-slate-50'}`}>
+                    {icon}
+                    <span className="text-[10px] font-medium">{label}</span>
+                </button>
+            );
+        }
+
+        function PatientCard({ patient, onCheck, onDelete, isUrgent }) {
+            const safePhone = patient.phone ? patient.phone.replace(/[^0-9]/g, '') : '';
+            const waLink = `https://wa.me/${safePhone}?text=Hello ${patient.name || 'Patient'}, this is a reminder from your doctor for your monthly diabetes checkup.`;
+            return (
+                <div className={`bg-white rounded-xl p-4 shadow-sm border border-l-4 transition-all ${isUrgent ? 'border-l-rose-500 border-t-rose-50 border-r-rose-50 border-b-rose-50' : 'border-l-emerald-500 border-slate-100'}`}>
+                    <div className="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 className="font-bold text-slate-800 text-lg">{patient.name || 'Unknown Name'}</h3>
+                            <p className="text-slate-500 text-sm flex items-center gap-1"><Icons.Phone className="w-3 h-3" /> {patient.phone || 'No Phone'}</p>
+                        </div>
+                        {isUrgent && <span className="bg-rose-100 text-rose-700 text-xs px-2 py-1 rounded font-bold">DUE NOW</span>}
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-slate-600 mb-4 bg-slate-50 p-2 rounded-lg">
+                        <div><span className="block text-xs text-slate-400">Last Check</span><span className="font-medium">{formatDate(patient.lastCheckup)}</span></div>
+                        <Icons.ChevronRight className="w-4 h-4 text-slate-300" />
+                        <div><span className="block text-xs text-slate-400">Due Date</span><span className={`font-medium ${isUrgent ? 'text-rose-600' : 'text-emerald-600'}`}>{formatDate(patient.nextCheckup)}</span></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        {safePhone ? (
+                            <a href={waLink} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-green-100 text-slate-700 hover:text-green-800 py-2 rounded-lg text-sm font-medium transition">
+                                <Icons.MessageCircle className="w-4 h-4" /> Remind
+                            </a>
+                        ) : (
+                            <button disabled className="flex items-center justify-center gap-2 bg-slate-50 text-slate-400 py-2 rounded-lg text-sm font-medium cursor-not-allowed">
+                                <Icons.MessageCircle className="w-4 h-4" /> No Phone
+                            </button>
+                        )}
+                        <button onClick={() => onCheck(patient)} className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm font-medium shadow-md shadow-emerald-100 transition">
+                            <Icons.CheckCircle className="w-4 h-4" /> Checked
+                        </button>
+                    </div>
+                    {onDelete && <button onClick={onDelete} className="mt-3 w-full text-center text-xs text-red-300 hover:text-red-500">Remove Patient</button>}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<GlucoReminder />);
+    </script>
+</body>
+
+</html>
