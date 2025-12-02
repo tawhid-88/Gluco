@@ -146,6 +146,7 @@
             const [showSettings, setShowSettings] = useState(false);
             const [loading, setLoading] = useState(true);
             const [isCheckedToday, setIsCheckedToday] = useState(false); // NEW STATE for checkbox
+            const [searchQuery, setSearchQuery] = useState(''); // Search functionality
 
             // Load Data from Server on Mount
             useEffect(() => {
@@ -411,13 +412,36 @@
                                 <h2 className="text-lg font-bold mb-3">All Patients</h2>
                                 <div className="relative">
                                     <div className="absolute left-3 top-3 w-5 h-5 text-slate-400"><Icons.Search className="w-5 h-5" /></div>
-                                    <input type="text" placeholder="Search name..." className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search by name or phone..." 
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                                    />
                                 </div>
                                 <div className="space-y-3">
-                                    {patients.map(patient => (
-                                        <PatientCard key={patient.id} patient={patient} onCheck={markCheckupComplete} onDelete={() => deletePatient(patient.id)} isUrgent={isDue(patient.nextCheckup)} />
-                                    ))}
+                                    {patients
+                                        .filter(patient => {
+                                            const query = searchQuery.toLowerCase();
+                                            return patient.name.toLowerCase().includes(query) || 
+                                                   (patient.phone && patient.phone.toLowerCase().includes(query));
+                                        })
+                                        .map(patient => (
+                                            <PatientCard key={patient.id} patient={patient} onCheck={markCheckupComplete} onDelete={() => deletePatient(patient.id)} isUrgent={isDue(patient.nextCheckup)} />
+                                        ))
+                                    }
                                 </div>
+                                {patients.filter(patient => {
+                                    const query = searchQuery.toLowerCase();
+                                    return patient.name.toLowerCase().includes(query) || 
+                                           (patient.phone && patient.phone.toLowerCase().includes(query));
+                                }).length === 0 && searchQuery && (
+                                    <div className="text-center py-8 text-slate-400">
+                                        <Icons.Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                        <p>No patients found matching "{searchQuery}"</p>
+                                    </div>
+                                )}
                             </div>
                         )}
 
