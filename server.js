@@ -5,12 +5,12 @@ const cors = require('cors');
 
 const app = express();
 const PORT = 3000;
-const DATA_FILE = path.join(__dirname, 'patient.json');
+const DATA_FILE = path.join(__dirname, 'data', 'patient.json');
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname)); // Serves index.html from the same folder
+app.use(express.static(path.join(__dirname, 'public'))); // Serves index.html from the public folder
 
 // Helper: Read Data
 const readData = () => {
